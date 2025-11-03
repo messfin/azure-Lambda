@@ -7,8 +7,27 @@ trigger:
 - main
 
 pool:
-  name: Default
+  name: Default  # 👈 your self-hosted agent pool
 
 steps:
-- script: echo "Running on self-hosted agent"
-  displayName: 'Run a simple command'
+- checkout: self
+
+- task: NodeTool@0
+  inputs:
+    versionSpec: '20.x'
+  displayName: 'Install Node.js'
+
+- script: npm ci
+  displayName: 'Install dependencies'
+
+- script: npx playwright install --with-deps
+  displayName: 'Install Playwright browsers'
+
+- script: npx playwright test
+  displayName: 'Run Playwright tests'
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    pathToPublish: 'playwright-report'
+    artifactName: 'playwright-report'
+    publishLocation: 'Container'
