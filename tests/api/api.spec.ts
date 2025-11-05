@@ -7,7 +7,7 @@ test("GET /products", async ({ request }) => {
   expect(response.status()).toBe(200);
   const body = await response.json();
   expect(body.data.length).toBe(9);
-  expect(body.total).toBe(50);
+  expect(body.total).toBe(53);
 });
 
 test("POST /users/login", async ({ request }) => {
