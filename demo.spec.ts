@@ -3,6 +3,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto('https://www.saucedemo.com/');
 });
 test.describe('Demo Test', () => {
+  // Test Case 1: Verify Page Title
     test('Verify Login Error Message', async ({ page }) => {
         await page.waitForSelector('#user-name',{state:'visible'});
         await page.locator('[data-test="username"]').type('example1@example.com');
