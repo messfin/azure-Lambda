@@ -2,15 +2,15 @@ name: Lambda Playwright Tests
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
   workflow_dispatch:
 
 env:
   AWS_REGION: us-east-1
   LAMBDA_FUNCTION_NAME: playwright-serverless-dev-run-tests
-  NODE_VERSION: '18.x'
+  NODE_VERSION: "18.x"
 
 jobs:
   deploy:
@@ -24,10 +24,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install Serverless Framework
-        run: npm install -g serverless
+        run: npm install -g serverless@3
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -55,7 +55,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -76,7 +76,7 @@ jobs:
           cat > run-tests.sh << 'EOF'
           #!/bin/bash
           set -e
-          
+
           tests=(
             "tests/simple.js"
             "tests/demo.lambda.js"
@@ -86,10 +86,10 @@ jobs:
             "tests/demo-todo-app.lambda.js"
             "tests/api-gravity.lambda.js"
           )
-          
+
           failed=0
           passed=0
-          
+
           for test in "${tests[@]}"; do
             echo "🧪 Running: $test"
             
@@ -121,15 +121,15 @@ jobs:
               ((failed++))
             fi
           done
-          
+
           echo ""
           echo "📊 Summary: $passed passed, $failed failed"
-          
+
           if [ $failed -gt 0 ]; then
             exit 1
           fi
           EOF
-          
+
           chmod +x run-tests.sh
           export LAMBDA_FUNCTION_NAME=${{ env.LAMBDA_FUNCTION_NAME }}
           ./run-tests.sh
@@ -148,7 +148,7 @@ jobs:
     name: Run Tests via Serverless Runner
     needs: deploy
     runs-on: ubuntu-latest
-    if: false  # Set to true to enable this job
+    if: false # Set to true to enable this job
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -157,7 +157,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -175,4 +175,3 @@ jobs:
         run: |
           cd serverless-runner
           npm start
-

@@ -1,1 +1,1 @@
-{"statusCode":200,"body":"{\"success\":true,\"duration\":750,\"testMatch\":\"tests/api.lambda.js\"}"}
+{"statusCode":200,"body":"{\"success\":true,\"duration\":831,\"testMatch\":\"tests/api.lambda.js\"}"}
