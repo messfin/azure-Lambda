@@ -1,0 +1,2 @@
+Write-Host 'Setup script is being recreated...' -ForegroundColor Green
+Write-Host 'Please run it again after this completes.' -ForegroundColor Yellow

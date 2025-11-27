@@ -6,3 +6,10 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# AWS Lambda Serverless
+.serverless/
+serverless-runner/node_modules/
+lambda/node_modules/
+test-results.log
+*.backup.*

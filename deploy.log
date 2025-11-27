@@ -1,0 +1,148 @@
+
+Deploying playwright-serverless to stage dev (us-east-1)
+
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 762B 0.0s done
+#1 DONE 0.1s
+
+#2 [internal] load metadata for public.ecr.aws/lambda/nodejs:18
+#2 DONE 2.1s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B 0.0s done
+#3 DONE 0.0s
+
+#4 [1/7] FROM public.ecr.aws/lambda/nodejs:18@sha256:520ed8061cc90d2d2eb8eaefe0b0a0f529cb501f3486749c36278bfc42980c84
+#4 resolve public.ecr.aws/lambda/nodejs:18@sha256:520ed8061cc90d2d2eb8eaefe0b0a0f529cb501f3486749c36278bfc42980c84 0.1s done
+#4 DONE 0.1s
+
+#5 [internal] load build context
+#5 transferring context: 798B 0.2s done
+#5 DONE 0.3s
+
+#6 [2/7] RUN yum install -y     nss     nspr     atk     at-spi2-atk     cups-libs     libdrm     libxkbcommon     libxcomposite     libxdamage     libxrandr     mesa-libgbm     alsa-lib     && yum clean all
+#6 CACHED
+
+#7 [3/7] COPY package*.json ./
+#7 CACHED
+
+#8 [4/7] RUN npm ci
+#8 CACHED
+
+#9 [5/7] RUN npx playwright install chromium
+#9 CACHED
+
+#10 [6/7] COPY lambda/ /var/task/
+#10 CACHED
+
+#11 [7/7] COPY tests/ /var/task/tests/
+#11 CACHED
+
+#12 exporting to image
+#12 exporting layers 0.0s done
+#12 exporting manifest sha256:641a13db7639c9f49ce3b11ea9d93c3292df7cde568209b22447c0fd5ef2f132 0.0s done
+#12 exporting config sha256:e7f6bb56a41650f66c7e2229bed4a467dff87f903c4836e1a5f9e1fa9dc7b9ef done
+#12 exporting attestation manifest sha256:212e7bc9d8292b7786c9ba09e78fce50df7497765309927c888aae666000b427
+#12 exporting attestation manifest sha256:212e7bc9d8292b7786c9ba09e78fce50df7497765309927c888aae666000b427 0.1s done
+#12 exporting manifest list sha256:ba3d78109749a28b2d659649b49b7d8ba3a72869b47c9e02970d245e48ab5a26 0.1s done
+#12 naming to docker.io/library/serverless-playwright-serverless-dev:baseimage
+#12 naming to docker.io/library/serverless-playwright-serverless-dev:baseimage done
+#12 unpacking to docker.io/library/serverless-playwright-serverless-dev:baseimage 0.0s done
+#12 DONE 0.4s
+
+View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/ubxypcd3dvqxiwd0stqozhh51
+
+The push refers to repository [356539756241.dkr.ecr.us-east-1.amazonaws.com/serverless-playwright-serverless-dev]
+27906804b2c1: Waiting
+3f095e95eb86: Waiting
+b29497029e31: Waiting
+d1af9e22e461: Waiting
+e61c9c2f1ef2: Waiting
+0b3ca7bc2674: Waiting
+c9ddd48d2fa1: Waiting
+f2bf73ec01c3: Waiting
+660a2cee224a: Waiting
+a5032622c64c: Waiting
+de540a3c2e72: Waiting
+17d5bf7f17f7: Waiting
+c4620b58144f: Waiting
+d1af9e22e461: Waiting
+e61c9c2f1ef2: Waiting
+0b3ca7bc2674: Waiting
+c9ddd48d2fa1: Waiting
+f2bf73ec01c3: Waiting
+27906804b2c1: Waiting
+3f095e95eb86: Waiting
+b29497029e31: Waiting
+de540a3c2e72: Waiting
+17d5bf7f17f7: Waiting
+c4620b58144f: Waiting
+660a2cee224a: Waiting
+a5032622c64c: Waiting
+d1af9e22e461: Waiting
+e61c9c2f1ef2: Waiting
+0b3ca7bc2674: Waiting
+c9ddd48d2fa1: Waiting
+f2bf73ec01c3: Waiting
+27906804b2c1: Waiting
+3f095e95eb86: Waiting
+b29497029e31: Waiting
+de540a3c2e72: Waiting
+17d5bf7f17f7: Waiting
+c4620b58144f: Waiting
+660a2cee224a: Waiting
+a5032622c64c: Waiting
+b29497029e31: Waiting
+d1af9e22e461: Waiting
+e61c9c2f1ef2: Layer already exists
+0b3ca7bc2674: Waiting
+c9ddd48d2fa1: Layer already exists
+f2bf73ec01c3: Waiting
+27906804b2c1: Layer already exists
+3f095e95eb86: Layer already exists
+de540a3c2e72: Waiting
+17d5bf7f17f7: Waiting
+c4620b58144f: Layer already exists
+660a2cee224a: Waiting
+a5032622c64c: Waiting
+de540a3c2e72: Layer already exists
+17d5bf7f17f7: Layer already exists
+660a2cee224a: Layer already exists
+a5032622c64c: Layer already exists
+b29497029e31: Layer already exists
+d1af9e22e461: Layer already exists
+0b3ca7bc2674: Waiting
+f2bf73ec01c3: Layer already exists
+0b3ca7bc2674: Pushed
+baseimage: digest: sha256:ba3d78109749a28b2d659649b49b7d8ba3a72869b47c9e02970d245e48ab5a26 size: 856
+Warning: Function run-tests has timeout of 60 seconds, however, it's attached to API Gateway so it's automatically limited to 30 seconds.
+Uploading CloudFormation file to S3
+Uploading State file to S3
+Creating new change set
+Waiting for new change set to be created
+Change Set did not reach desired state, retrying
+Change Set did not reach desired state, retrying
+Executing created change set
+  UPDATE_IN_PROGRESS - AWS::CloudFormation::Stack - playwright-serverless-dev
+  UPDATE_IN_PROGRESS - AWS::Lambda::Function - RunDashtestsLambdaFunction
+  UPDATE_FAILED - AWS::Lambda::Function - RunDashtestsLambdaFunction
+  UPDATE_ROLLBACK_IN_PROGRESS - AWS::CloudFormation::Stack - playwright-serverless-dev
+  UPDATE_IN_PROGRESS - AWS::Lambda::Function - RunDashtestsLambdaFunction
+  UPDATE_COMPLETE - AWS::Lambda::Function - RunDashtestsLambdaFunction
+  UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS - AWS::CloudFormation::Stack - playwright-serverless-dev
+  UPDATE_ROLLBACK_COMPLETE - AWS::CloudFormation::Stack - playwright-serverless-dev
+
+├ù Stack playwright-serverless-dev failed to deploy (60s)
+Environment: win32, node 22.20.0, framework 3.40.0, plugin 7.2.3, SDK 4.5.1
+Credentials: Local, "default" profile
+Docs:        docs.serverless.com
+Support:     forum.serverless.com
+Bugs:        github.com/serverless/serverless/issues
+
+Error:
+UPDATE_FAILED: RunDashtestsLambdaFunction (AWS::Lambda::Function)
+Resource handler returned message: "The image manifest, config or layer media type for the source image 356539756241.dkr.ecr.us-east-1.amazonaws.com/serverless-playwright-serverless-dev@sha256:ba3d78109749a28b2d659649b49b7d8ba3a72869b47c9e02970d245e48ab5a26 is not supported. (Service: Lambda, Status Code: 400, Request ID: ae371ade-050a-410a-9d1d-afaab7097624) (SDK Attempt Count: 1)" (RequestToken: 870562d3-687c-2f2c-d312-5174e086f4cd, HandlerErrorCode: InvalidRequest)
+
+View the full error: https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stack/detail?stackId=arn%3Aaws%3Acloudformation%3Aus-east-1%3A356539756241%3Astack%2Fplaywright-serverless-dev%2F04592720-c99f-11f0-859f-0e2a882943ab

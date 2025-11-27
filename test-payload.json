@@ -1,0 +1,5 @@
+{
+  "body": {
+    "testMatch": "tests/api-gravity.lambda.js"
+  }
+}

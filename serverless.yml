@@ -1,0 +1,26 @@
+
+service: playwright-serverless
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  stage: dev
+  region: us-east-1
+  ecr:
+    images:
+      baseimage:
+        path: ./
+        file: Dockerfile
+        platform: linux/amd64
+
+functions:
+  run-tests:
+    timeout: 60
+    image: baseimage
+    events:
+      - http:
+          path: /
+          method: post
+          integration: lambda-proxy

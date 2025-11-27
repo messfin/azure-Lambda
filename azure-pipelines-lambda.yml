@@ -1,0 +1,208 @@
+# Azure DevOps Pipeline for Lambda Playwright Tests
+# This pipeline deploys Lambda and runs tests on AWS
+
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+  paths:
+    exclude:
+      - README.md
+      - '*.md'
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  AWS_REGION: 'us-east-1'
+  LAMBDA_FUNCTION_NAME: 'playwright-serverless-dev-run-tests'
+  NODE_VERSION: '18.x'
+
+stages:
+  - stage: Deploy
+    displayName: 'Deploy Lambda Function'
+    jobs:
+      - job: DeployLambda
+        displayName: 'Deploy to AWS Lambda'
+        steps:
+          - checkout: self
+
+          - task: NodeTool@0
+            displayName: 'Install Node.js'
+            inputs:
+              versionSpec: $(NODE_VERSION)
+
+          - task: AWSShellScript@1
+            displayName: 'Configure AWS Credentials'
+            inputs:
+              awsCredentials: 'AWS Service Connection'  # Configure in Azure DevOps Service Connections
+              regionName: $(AWS_REGION)
+              scriptType: 'inline'
+              inlineScript: |
+                echo "AWS credentials configured"
+
+          - script: |
+              npm install -g serverless
+            displayName: 'Install Serverless Framework'
+
+          - script: |
+              npm ci
+            displayName: 'Install dependencies'
+
+          - script: |
+              serverless deploy --verbose
+            displayName: 'Deploy to AWS Lambda'
+            env:
+              AWS_REGION: $(AWS_REGION)
+
+  - stage: Test
+    displayName: 'Run Tests on Lambda'
+    dependsOn: Deploy
+    jobs:
+      - job: RunTests
+        displayName: 'Execute Lambda Tests'
+        steps:
+          - checkout: self
+
+          - task: NodeTool@0
+            displayName: 'Install Node.js'
+            inputs:
+              versionSpec: $(NODE_VERSION)
+
+          - task: AWSShellScript@1
+            displayName: 'Configure AWS Credentials'
+            inputs:
+              awsCredentials: 'AWS Service Connection'
+              regionName: $(AWS_REGION)
+              scriptType: 'inline'
+              inlineScript: |
+                echo "AWS credentials configured"
+
+          - script: |
+              # Install AWS CLI (if not already available)
+              if ! command -v aws &> /dev/null; then
+                curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+                unzip awscliv2.zip
+                sudo ./aws/install
+              fi
+            displayName: 'Install AWS CLI'
+
+          - script: |
+              # Create test runner script
+              cat > run-tests.sh << 'EOF'
+              #!/bin/bash
+              set -e
+              
+              tests=(
+                "tests/simple.js"
+                "tests/demo.lambda.js"
+                "tests/example.lambda.js"
+                "tests/api.lambda.js"
+                "tests/apiChallenge.lambda.js"
+                "tests/demo-todo-app.lambda.js"
+                "tests/api-gravity.lambda.js"
+              )
+              
+              failed=0
+              passed=0
+              
+              for test in "${tests[@]}"; do
+                echo "🧪 Running: $test"
+                
+                # Create payload
+                echo "{\"body\":{\"testMatch\":\"$test\"}}" > test-payload.json
+                
+                # Invoke Lambda
+                aws lambda invoke \
+                  --function-name $LAMBDA_FUNCTION_NAME \
+                  --cli-binary-format raw-in-base64-out \
+                  --payload file://test-payload.json \
+                  response.json
+                
+                # Parse response
+                status=$(jq -r '.statusCode' response.json)
+                if [ "$status" = "200" ]; then
+                  success=$(jq -r '.body' response.json | jq -r '.success')
+                  duration=$(jq -r '.body' response.json | jq -r '.duration')
+                  
+                  if [ "$success" = "true" ]; then
+                    echo "✅ Passed - Duration: ${duration}ms"
+                    ((passed++))
+                  else
+                    echo "❌ Failed"
+                    ((failed++))
+                  fi
+                else
+                  echo "❌ Lambda invocation failed with status: $status"
+                  ((failed++))
+                fi
+              done
+              
+              echo ""
+              echo "📊 Summary: $passed passed, $failed failed"
+              
+              if [ $failed -gt 0 ]; then
+                exit 1
+              fi
+              EOF
+              
+              chmod +x run-tests.sh
+              export LAMBDA_FUNCTION_NAME=$(LAMBDA_FUNCTION_NAME)
+              ./run-tests.sh
+            displayName: 'Run Tests on Lambda'
+            env:
+              LAMBDA_FUNCTION_NAME: $(LAMBDA_FUNCTION_NAME)
+
+          - task: PublishTestResults@2
+            displayName: 'Publish Test Results'
+            condition: always()
+            inputs:
+              testResultsFormat: 'JUnit'
+              testResultsFiles: '**/test-results.xml'
+              failTaskOnFailedTests: true
+
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publish Test Artifacts'
+            condition: always()
+            inputs:
+              pathToPublish: '$(System.DefaultWorkingDirectory)'
+              artifactName: 'test-results'
+              patterns: |
+                **/response*.json
+                **/test-payload.json
+
+  - stage: TestWithRunner
+    displayName: 'Run Tests via Serverless Runner (Optional)'
+    dependsOn: Deploy
+    condition: false  # Set to true to enable
+    jobs:
+      - job: RunTestsWithRunner
+        displayName: 'Execute via Serverless Runner'
+        steps:
+          - checkout: self
+
+          - task: NodeTool@0
+            displayName: 'Install Node.js'
+            inputs:
+              versionSpec: $(NODE_VERSION)
+
+          - task: AWSShellScript@1
+            displayName: 'Configure AWS Credentials'
+            inputs:
+              awsCredentials: 'AWS Service Connection'
+              regionName: $(AWS_REGION)
+              scriptType: 'inline'
+              inlineScript: |
+                echo "AWS credentials configured"
+
+          - script: |
+              cd serverless-runner
+              npm ci
+            displayName: 'Install serverless-runner dependencies'
+
+          - script: |
+              cd serverless-runner
+              npm start
+            displayName: 'Run tests via serverless-runner'
+

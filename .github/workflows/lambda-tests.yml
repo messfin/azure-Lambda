@@ -1,0 +1,178 @@
+name: Lambda Playwright Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  LAMBDA_FUNCTION_NAME: playwright-serverless-dev-run-tests
+  NODE_VERSION: '18.x'
+
+jobs:
+  deploy:
+    name: Deploy Lambda Function
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Serverless Framework
+        run: npm install -g serverless
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Deploy to AWS Lambda
+        run: serverless deploy --verbose
+        continue-on-error: false
+
+  test:
+    name: Run Tests on Lambda
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install AWS CLI
+        run: |
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install
+
+      - name: Run all tests
+        run: |
+          # Create test runner script
+          cat > run-tests.sh << 'EOF'
+          #!/bin/bash
+          set -e
+          
+          tests=(
+            "tests/simple.js"
+            "tests/demo.lambda.js"
+            "tests/example.lambda.js"
+            "tests/api.lambda.js"
+            "tests/apiChallenge.lambda.js"
+            "tests/demo-todo-app.lambda.js"
+            "tests/api-gravity.lambda.js"
+          )
+          
+          failed=0
+          passed=0
+          
+          for test in "${tests[@]}"; do
+            echo "🧪 Running: $test"
+            
+            # Create payload
+            echo "{\"body\":{\"testMatch\":\"$test\"}}" > test-payload.json
+            
+            # Invoke Lambda
+            aws lambda invoke \
+              --function-name $LAMBDA_FUNCTION_NAME \
+              --cli-binary-format raw-in-base64-out \
+              --payload file://test-payload.json \
+              response.json
+            
+            # Parse response
+            status=$(jq -r '.statusCode' response.json)
+            if [ "$status" = "200" ]; then
+              success=$(jq -r '.body' response.json | jq -r '.success')
+              duration=$(jq -r '.body' response.json | jq -r '.duration')
+              
+              if [ "$success" = "true" ]; then
+                echo "✅ Passed - Duration: ${duration}ms"
+                ((passed++))
+              else
+                echo "❌ Failed"
+                ((failed++))
+              fi
+            else
+              echo "❌ Lambda invocation failed with status: $status"
+              ((failed++))
+            fi
+          done
+          
+          echo ""
+          echo "📊 Summary: $passed passed, $failed failed"
+          
+          if [ $failed -gt 0 ]; then
+            exit 1
+          fi
+          EOF
+          
+          chmod +x run-tests.sh
+          export LAMBDA_FUNCTION_NAME=${{ env.LAMBDA_FUNCTION_NAME }}
+          ./run-tests.sh
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            response*.json
+            test-payload.json
+          retention-days: 7
+
+  test-with-runner:
+    name: Run Tests via Serverless Runner
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: false  # Set to true to enable this job
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install serverless-runner dependencies
+        run: |
+          cd serverless-runner
+          npm ci
+
+      - name: Run tests via serverless-runner
+        run: |
+          cd serverless-runner
+          npm start
+

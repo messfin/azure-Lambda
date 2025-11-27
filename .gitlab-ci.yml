@@ -1,0 +1,116 @@
+# GitLab CI/CD Pipeline for Lambda Playwright Tests
+
+stages:
+  - deploy
+  - test
+
+variables:
+  AWS_REGION: "us-east-1"
+  LAMBDA_FUNCTION_NAME: "playwright-serverless-dev-run-tests"
+  NODE_VERSION: "18.x"
+
+# Deploy Lambda Function
+deploy_lambda:
+  stage: deploy
+  image: node:${NODE_VERSION}
+  before_script:
+    - npm install -g serverless
+    - npm ci
+  script:
+    - serverless deploy --verbose
+  only:
+    - main
+    - develop
+    - merge_requests
+  environment:
+    name: production
+    url: https://${AWS_REGION}.console.aws.amazon.com/lambda
+
+# Run Tests on Lambda
+test_lambda:
+  stage: test
+  image: amazon/aws-cli:latest
+  before_script:
+    - apk add --no-cache jq
+    - |
+      cat > run-tests.sh << 'EOF'
+      #!/bin/sh
+      set -e
+      
+      tests="tests/simple.js tests/demo.lambda.js tests/example.lambda.js tests/api.lambda.js tests/apiChallenge.lambda.js tests/demo-todo-app.lambda.js tests/api-gravity.lambda.js"
+      
+      failed=0
+      passed=0
+      
+      for test in $tests; do
+        echo "🧪 Running: $test"
+        
+        # Create payload
+        echo "{\"body\":{\"testMatch\":\"$test\"}}" > test-payload.json
+        
+        # Invoke Lambda
+        aws lambda invoke \
+          --function-name $LAMBDA_FUNCTION_NAME \
+          --cli-binary-format raw-in-base64-out \
+          --payload file://test-payload.json \
+          response.json
+        
+        # Parse response
+        status=$(jq -r '.statusCode' response.json)
+        if [ "$status" = "200" ]; then
+          success=$(jq -r '.body' response.json | jq -r '.success')
+          duration=$(jq -r '.body' response.json | jq -r '.duration')
+          
+          if [ "$success" = "true" ]; then
+            echo "✅ Passed - Duration: ${duration}ms"
+            passed=$((passed + 1))
+          else
+            echo "❌ Failed"
+            failed=$((failed + 1))
+          fi
+        else
+          echo "❌ Lambda invocation failed with status: $status"
+          failed=$((failed + 1))
+        fi
+      done
+      
+      echo ""
+      echo "📊 Summary: $passed passed, $failed failed"
+      
+      if [ $failed -gt 0 ]; then
+        exit 1
+      fi
+      EOF
+      chmod +x run-tests.sh
+  script:
+    - export LAMBDA_FUNCTION_NAME=${LAMBDA_FUNCTION_NAME}
+    - ./run-tests.sh
+  artifacts:
+    when: always
+    paths:
+      - response*.json
+      - test-payload.json
+    expire_in: 1 week
+  only:
+    - main
+    - develop
+    - merge_requests
+  dependencies:
+    - deploy_lambda
+
+# Run Tests via Serverless Runner (Optional)
+test_with_runner:
+  stage: test
+  image: node:${NODE_VERSION}
+  before_script:
+    - cd serverless-runner
+    - npm ci
+  script:
+    - npm start
+  only:
+    - main
+    - develop
+  when: manual  # Set to 'on_success' to run automatically
+  dependencies:
+    - deploy_lambda
+
