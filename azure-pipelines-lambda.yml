@@ -12,7 +12,7 @@ trigger:
       - '*.md'
 
 pool:
-  vmImage: 'ubuntu-latest'
+  name: Default  # 👈 your self-hosted agent pool
 
 variables:
   AWS_REGION: 'us-east-1'
